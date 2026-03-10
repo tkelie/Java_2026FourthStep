@@ -50,42 +50,28 @@ REST API として公開し、実務で頻出の技術スタックを体系的�
 │   │   ├── java/
 │   │   │   └── com/example/Java_2026FourthStep/
 │   │   │       ├── Java2026FourthStepApplication.java
-│   │   │       ├── config/
-│   │   │       │   └── SecurityConfig.java
 │   │   │       ├── controller/
-│   │   │       │   ├── LogController.java
-│   │   │       │   └── SessionController.java
+│   │   │       │   └── LogController.java
 │   │   │       ├── service/
-│   │   │       │   ├── LogService.java
-│   │   │       │   └── SessionService.java
+│   │   │       │   └── LogService.java
 │   │   │       ├── repository/
 │   │   │       │   └── LogRepository.java
 │   │   │       ├── entity/
 │   │   │       │   ├── Log.java
-│   │   │       │   └── Action.java        ← enum（LOGIN / LOGOUT）
+│   │   │       │   └── Action.java
 │   │   │       ├── dto/
-│   │   │       │   ├── SessionDto.java
-│   │   │       │   └── SessionSummaryDto.java
+│   │   │       │   └── LogRequest.java
 │   │   │       └── exception/
 │   │   │           ├── UserNotFoundException.java
 │   │   │           ├── ErrorResponse.java
 │   │   │           └── GlobalExceptionHandler.java
 │   │   └── resources/
-│   │       ├── application.properties
-│   │       ├── application-dev.properties
-│   │       ├── application-prod.properties
-│   │       └── db/migration/
-│   │           ├── V1__create_log_table.sql
-│   │           └── V2__insert_sample_data.sql
+│   │       └── application.properties
 │   └── test/
 │       └── java/
 │           └── com/example/Java_2026FourthStep/
 │               ├── Java2026FourthStepApplicationTests.java
-│               ├── LogControllerTest.java
-│               ├── SessionControllerTest.java
-│               └── LogRepositoryTest.java
-├── Dockerfile
-├── docker-compose.yml
+│               └── LogControllerTest.java
 ├── pom.xml
 └── README.md
 ```
@@ -96,8 +82,8 @@ REST API として公開し、実務で頻出の技術スタックを体系的�
 
 | STEP | テーマ | 実施日 | 状態 |
 |---|---|---|---|
-| STEP 1 | H2 + JPA 導入・CRUD 実装 | - | 🔲 |
-| STEP 2 | ログフォーマット拡張・セッション分析 API | - | 🔲 |
+| STEP 1 | H2 + JPA 導入・CRUD 実装 | 2026/03/10 | ✅ |
+| STEP 2 | セッション分析 API | - | 🔲 |
 | STEP 3 | PostgreSQL 移行・Flyway 導入 | - | 🔲 |
 | STEP 4 | Swagger / OpenAPI ドキュメント生成 | - | 🔲 |
 | STEP 5 | Docker 化（Dockerfile + docker-compose）| - | 🔲 |
@@ -111,7 +97,7 @@ REST API として公開し、実務で頻出の技術スタックを体系的�
 
 ---
 
-## STEP 1：H2 + JPA 導入・CRUD 実装
+## STEP 1：H2 + JPA 導入・CRUD 実装【2026/03/10実施】
 
 ### 🌱 A-1：インメモリ実装から JPA へ・ログフォーマット拡張
 
@@ -119,6 +105,7 @@ REST API として公開し、実務で頻出の技術スタックを体系的�
 - ログフォーマットを拡張し、`date` + `time` を `log_time`（`LocalDateTime`）に統合
 - `action` 列を `String` から `enum Action { LOGIN, LOGOUT }` で管理
 - `JpaRepository<Log, Long>` を継承した `LogRepository` に差し替え
+- POST リクエスト受け口として `LogRequest` DTO を追加
 - H2 インメモリ DB で動作確認（アプリ再起動でリセット）
 
 **ThirdStep からの主な変更点**
@@ -129,11 +116,13 @@ REST API として公開し、実務で頻出の技術スタックを体系的�
 | `action` が `String` | `action` が `enum Action { LOGIN, LOGOUT }` |
 | 日時情報なし | `log_time`（`LocalDateTime`）を追加 |
 | `List<Log>` をインメモリ保持 | `JpaRepository` 経由で DB 操作 |
+| `@RequestBody Log` で POST 受け取り | `@RequestBody LogRequest` DTO 経由に分離 |
 
 **`Log` エンティティの概要**
 
 ```java
 @Entity
+@Table(name = "logs")
 public class Log {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -147,30 +136,21 @@ public class Log {
 }
 ```
 
-**DB スキーマ（H2 / PostgreSQL 共通）**
-
-```sql
-CREATE TABLE log (
-    id       BIGSERIAL PRIMARY KEY,
-    user_id  VARCHAR(50) NOT NULL,
-    action   VARCHAR(10) NOT NULL,   -- 'LOGIN' or 'LOGOUT'
-    log_time TIMESTAMP  NOT NULL
-);
-```
-
 **学習内容**
 
 - `@Entity` / `@Id` / `@GeneratedValue` / `@Enumerated`
 - `JpaRepository` の CRUD メソッド（`save` / `findAll` / `findById` / `deleteById`）
+- メソッド名によるクエリ自動生成（`findByUserId`）
 - `spring.jpa.show-sql=true` でクエリのログ確認
 - H2 コンソール（`/h2-console`）でデータ確認
+- `record` を DTO として使う（`@Entity` とは分離）
 
 > ※ `record` は不変オブジェクトのため JPA の `@Entity` として使用不可。  
-> Lombok `@Data` または通常の getter/setter クラスに移行する
+> 通常の getter/setter クラスに移行する
 
 ---
 
-## STEP 2：ログフォーマット拡張・セッション分析 API
+## STEP 2：セッション分析 API
 
 ### 🌱 B-1：SecondStep のセッション計算ロジックを REST API として公開
 
@@ -187,9 +167,9 @@ Spring Boot の Service 層に移植して API として公開する。
 | `GET /api/sessions/average` | 全セッションの平均滞在時間（分・切り捨て）|
 | `GET /api/sessions/active` | ログイン中ユーザー（LOGOUT なし）の一覧 |
 
-**SecondStep との対応関係**
+**FirstStep との対応関係**
 
-| SecondStep（Java プログラム）| FourthStep（API）|
+| FirstStep（Java プログラム）| FourthStep（API）|
 |---|---|
 | `extractSessions()` で LOGIN/LOGOUT ペア抽出 | `SessionService.extractSessions()` に移植 |
 | `groupingBy + summingLong` で総滞在時間集計 | `GET /api/sessions/ranking` |
@@ -238,10 +218,8 @@ record SessionSummaryDto(String userId, long totalMinutes) {}
 **学習内容**
 
 - `LocalDateTime` を使ったタイムスタンプ比較・`Duration.between()`
-- `enum` を JPA で扱う `@Enumerated(EnumType.STRING)`
 - Stream API（`groupingBy` / `summingLong` / `summarizingLong`）の Service 層実装
 - 不完全セッション（ログイン中）の検出パターン
-- `record` を DTO として使う（`@Entity` とは分離して使える）
 - カスタムクエリ `findByUserIdOrderByLogTimeAsc`
 
 ---
@@ -258,7 +236,7 @@ record SessionSummaryDto(String userId, long totalMinutes) {}
 
 ```sql
 -- V1__create_log_table.sql
-CREATE TABLE log (
+CREATE TABLE logs (
     id       BIGSERIAL PRIMARY KEY,
     user_id  VARCHAR(50) NOT NULL,
     action   VARCHAR(10) NOT NULL,
@@ -472,7 +450,7 @@ class LogRepositoryTest {
 | Stream API | `groupingBy` / `summingLong` / `summarizingLong`（SecondStep 継続）|
 | `Duration` | セッション時間計算（`java.time` 継続）|
 | `enum` | `Action`（LOGIN / LOGOUT）の型安全な管理 |
-| `record` | DTO として使用（`SessionDto` / `SessionSummaryDto`）|
+| `record` | DTO として使用（`LogRequest` / `SessionDto` / `SessionSummaryDto`）|
 | Maven | ビルド・依存関係管理 |
 
 ---
