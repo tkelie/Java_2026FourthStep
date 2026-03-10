@@ -4,6 +4,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.example.Java_2026FourthStep.entity.Log;
 import com.example.Java_2026FourthStep.service.LogService;
+import com.example.Java_2026FourthStep.dto.LogRequest;
 
 import org.springframework.http.ResponseEntity;
 
@@ -31,8 +32,8 @@ public class LogController {
     }
 
     @PostMapping
-    public ResponseEntity<Log> addLog(@RequestBody Log log) {
-        Log saved = logService.save(log);
+    public ResponseEntity<Log> addLog(@RequestBody LogRequest request) {
+        Log saved = logService.save(request);
         return ResponseEntity.status(201).body(saved);
     }
 
