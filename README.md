@@ -51,16 +51,20 @@ REST API として公開し、実務で頻出の技術スタックを体系的�
 │   │   │   └── com/example/Java_2026FourthStep/
 │   │   │       ├── Java2026FourthStepApplication.java
 │   │   │       ├── controller/
-│   │   │       │   └── LogController.java
+│   │   │       │   ├── LogController.java
+│   │   │       │   └── SessionController.java
 │   │   │       ├── service/
-│   │   │       │   └── LogService.java
+│   │   │       │   ├── LogService.java
+│   │   │       │   └── SessionService.java
 │   │   │       ├── repository/
 │   │   │       │   └── LogRepository.java
 │   │   │       ├── entity/
 │   │   │       │   ├── Log.java
 │   │   │       │   └── Action.java
 │   │   │       ├── dto/
-│   │   │       │   └── LogRequest.java
+│   │   │       │   ├── LogRequest.java
+│   │   │       │   ├── SessionDto.java
+│   │   │       │   └── SessionSummaryDto.java
 │   │   │       └── exception/
 │   │   │           ├── UserNotFoundException.java
 │   │   │           ├── ErrorResponse.java
@@ -83,7 +87,7 @@ REST API として公開し、実務で頻出の技術スタックを体系的�
 | STEP | テーマ | 実施日 | 状態 |
 |---|---|---|---|
 | STEP 1 | H2 + JPA 導入・CRUD 実装 | 2026/03/10 | ✅ |
-| STEP 2 | セッション分析 API | - | 🔲 |
+| STEP 2 | セッション分析 API | 2026/03/11 | ✅ |
 | STEP 3 | PostgreSQL 移行・Flyway 導入 | - | 🔲 |
 | STEP 4 | Swagger / OpenAPI ドキュメント生成 | - | 🔲 |
 | STEP 5 | Docker 化（Dockerfile + docker-compose）| - | 🔲 |
@@ -150,7 +154,7 @@ public class Log {
 
 ---
 
-## STEP 2：セッション分析 API
+## STEP 2：セッション分析 API【2026/03/11実施】
 
 ### 🌱 B-1：SecondStep のセッション計算ロジックを REST API として公開
 
